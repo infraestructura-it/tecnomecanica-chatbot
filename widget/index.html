@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CITAMOTOR — Tecnomecánica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#080b10;--surface:#0d1117;--surface2:#111827;
+      --border:rgba(0,212,255,0.12);--cyan:#00d4ff;--green:#10b981;
+      --purple:#7c3aed;--text:#c9d6e8;--muted:rgba(201,214,232,0.45);
+    }
+    html,body{height:100%}
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:'Syne',sans-serif;
+      display:flex;align-items:center;justify-content:center;
+      min-height:100vh;padding:16px;overflow:hidden;
+    }
+    body::before{
+      content:'';position:fixed;inset:0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,212,255,0.025) 1px,transparent 1px);
+      background-size:36px 36px;pointer-events:none;z-index:0;
+    }
+    .chat{
+      position:relative;z-index:1;
+      width:100%;max-width:460px;height:min(88vh,700px);
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:16px;display:flex;flex-direction:column;
+      overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.5);
+    }
+    /* Header */
+    .hdr{
+      background:var(--surface2);border-bottom:1px solid var(--border);
+      padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;
+    }
+    .hdr-icon{
+      width:40px;height:40px;border-radius:50%;
+      background:linear-gradient(135deg,var(--cyan),var(--purple));
+      display:flex;align-items:center;justify-content:center;font-size:18px;
+    }
+    .hdr h2{font-size:13px;font-weight:700;color:#fff;letter-spacing:.04em}
+    .hdr p{
+      font-family:'Space Mono',monospace;font-size:10px;color:var(--cyan);
+      display:flex;align-items:center;gap:5px;margin-top:2px;
+    }
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+
+    /* Mensajes */
+    .msgs{
+      flex:1;overflow-y:auto;padding:16px;
+      display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;
+    }
+    .msgs::-webkit-scrollbar{width:4px}
+    .msgs::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.2);border-radius:2px}
+
+    .msg{
+      max-width:86%;padding:11px 15px;border-radius:16px;
+      font-size:13px;line-height:1.6;
+      animation:msgIn .22s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes msgIn{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
+
+    .msg.bot{
+      align-self:flex-start;background:var(--surface2);
+      border:1px solid var(--border);border-bottom-left-radius:4px;
+    }
+    .msg.user{
+      align-self:flex-end;
+      background:linear-gradient(135deg,var(--cyan),#0095b3);
+      color:var(--bg);font-weight:600;border-bottom-right-radius:4px;
+    }
+    .msg.bot strong{color:#fff}
+    .msg.bot em{color:var(--cyan);font-style:normal}
+    .msg.ok{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3)}
+
+    /* Botones del menú */
+    .btns{
+      display:flex;flex-wrap:wrap;gap:7px;
+      padding:4px 16px 12px;
+    }
+    .btn-op{
+      padding:8px 14px;
+      background:rgba(0,212,255,0.07);
+      border:1px solid rgba(0,212,255,0.22);
+      border-radius:20px;color:var(--cyan);
+      font-family:'Space Mono',monospace;font-size:11px;
+      cursor:pointer;transition:all .18s;white-space:nowrap;
+    }
+    .btn-op:hover{background:rgba(0,212,255,0.16);border-color:var(--cyan);transform:translateY(-1px)}
+    .btn-op:active{transform:translateY(0)}
+
+    /* QR */
+    .qr-box{
+      align-self:flex-start;
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:12px;padding:14px;
+      display:flex;flex-direction:column;align-items:center;gap:8px;
+      animation:msgIn .3s both;
+    }
+    .qr-box img{border-radius:8px;width:150px;height:150px}
+    .qr-label{
+      font-family:'Space Mono',monospace;font-size:10px;
+      color:var(--green);letter-spacing:.06em;
+    }
+
+    /* Typing */
+    .typing{
+      align-self:flex-start;display:flex;align-items:center;gap:5px;
+      padding:12px 16px;background:var(--surface2);
+      border:1px solid var(--border);border-radius:16px;border-bottom-left-radius:4px;
+    }
+    .typing span{
+      width:6px;height:6px;border-radius:50%;background:var(--cyan);
+      animation:bounce 1.2s ease-in-out infinite;
+    }
+    .typing span:nth-child(2){animation-delay:.2s}
+    .typing span:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+
+    /* Input */
+    .inp-area{
+      background:var(--surface2);border-top:1px solid var(--border);
+      padding:12px 14px;display:flex;gap:9px;align-items:flex-end;flex-shrink:0;
+    }
+    .inp{
+      flex:1;background:var(--bg);border:1px solid var(--border);
+      border-radius:12px;padding:11px 14px;color:#fff;
+      font-family:'Syne',sans-serif;font-size:13px;
+      resize:none;outline:none;min-height:42px;max-height:100px;
+      transition:border-color .2s;line-height:1.4;
+    }
+    .inp:focus{border-color:rgba(0,212,255,0.4)}
+    .inp::placeholder{color:var(--muted)}
+    .send{
+      width:42px;height:42px;border-radius:50%;
+      background:var(--green);border:none;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:transform .2s,background .2s;flex-shrink:0;
+    }
+    .send:hover:not(:disabled){transform:scale(1.08);background:#0ea472}
+    .send:disabled{opacity:.4;cursor:not-allowed}
+    .send svg{width:18px;height:18px;fill:#fff}
+
+    .footer{
+      padding:6px 14px 10px;text-align:center;
+      font-family:'Space Mono',monospace;font-size:9px;
+      color:var(--muted);letter-spacing:.08em;
+      background:var(--surface2);border-top:1px solid rgba(0,212,255,0.05);
+    }
+  </style>
+</head>
+<body>
+<div class="chat">
+  <div class="hdr">
+    <div class="hdr-icon">🚗</div>
+    <div>
+      <h2>CITAMOTOR — Tecnomecánica</h2>
+      <p><span class="dot"></span> Asistente en línea</p>
+    </div>
+  </div>
+
+  <div class="msgs" id="msgs"></div>
+  <div class="btns" id="btns"></div>
+
+  <div class="inp-area">
+    <textarea id="inp" class="inp" placeholder="Escribe o usa los botones..." rows="1"></textarea>
+    <button class="send" id="sendBtn" onclick="enviar()">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+  <div class="footer">CITAMOTOR · Revisión Tecnomecánica · Bogotá</div>
+</div>
+
+<script>
+  const API = window.location.origin;
+  let sid = null, busy = false;
+
+  const msgsEl  = document.getElementById('msgs');
+  const btnsEl  = document.getElementById('btns');
+  const inpEl   = document.getElementById('inp');
+  const sendBtn = document.getElementById('sendBtn');
+
+  function scroll(){ msgsEl.scrollTop = msgsEl.scrollHeight }
+
+  function fmt(t){
+    return t
+      .replace(/\*(.*?)\*/g,'<strong>$1</strong>')
+      .replace(/_(.*?)_/g,'<em>$1</em>')
+      .replace(/\n/g,'<br>');
+  }
+
+  function addMsg(rol, texto, extra=''){
+    const d = document.createElement('div');
+    d.className = `msg ${rol} ${extra}`;
+    d.innerHTML = fmt(texto);
+    msgsEl.appendChild(d);
+    scroll();
+    return d;
+  }
+
+  function addQR(src){
+    const d = document.createElement('div');
+    d.className = 'qr-box';
+    d.innerHTML = `<img src="${src}" alt="QR Cita"><p class="qr-label">📲 ESCANEA PARA GUARDAR</p>`;
+    msgsEl.appendChild(d);
+    scroll();
+  }
+
+  function mostrarBotones(lista){
+    btnsEl.innerHTML = '';
+    lista.forEach(b => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-op';
+      btn.textContent = b.label;
+      btn.onclick = () => enviar(b.valor, b.label);
+      btnsEl.appendChild(btn);
+    });
+  }
+
+  function showTyping(){
+    const d = document.createElement('div');
+    d.className='typing';d.id='typ';
+    d.innerHTML='<span></span><span></span><span></span>';
+    msgsEl.appendChild(d);scroll();
+  }
+  function hideTyping(){ const t=document.getElementById('typ');if(t)t.remove(); }
+
+  function setLoading(v){
+    busy=v; sendBtn.disabled=v; inpEl.disabled=v;
+  }
+
+  inpEl.addEventListener('input',()=>{
+    inpEl.style.height='auto';
+    inpEl.style.height=Math.min(inpEl.scrollHeight,100)+'px';
+  });
+  inpEl.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}
+  });
+
+  async function enviar(valorDirecto=null, labelDirecto=null){
+    const texto = valorDirecto || inpEl.value.trim();
+    if(!texto||busy) return;
+
+    const label = labelDirecto || texto;
+    addMsg('user', label);
+    inpEl.value=''; inpEl.style.height='auto';
+    btnsEl.innerHTML='';
+    setLoading(true); showTyping();
+
+    try {
+      const r = await fetch(`${API}/api/chat`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ mensaje: texto, sessionId: sid }),
+      });
+      if(!r.ok) throw new Error('Error servidor');
+      const d = await r.json();
+      sid = d.sessionId;
+      hideTyping();
+
+      if(d.texto) addMsg('bot', d.texto, d.citaCreada?'ok':'');
+      if(d.qr)    addQR(d.qr);
+      if(d.botones&&d.botones.length) mostrarBotones(d.botones);
+
+    } catch(e){
+      hideTyping();
+      addMsg('bot','⚠️ Error de conexión. Verifica el servidor.');
+    } finally {
+      setLoading(false); inpEl.focus();
+    }
+  }
+
+  // Arrancar
+  (async()=>{
+    setLoading(true); showTyping();
+    try {
+      const r = await fetch(`${API}/api/chat`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mensaje:'__INIT__', sessionId:null}),
+      });
+      const d = await r.json();
+      sid = d.sessionId;
+      hideTyping();
+      if(d.texto) addMsg('bot', d.texto);
+      if(d.botones&&d.botones.length) mostrarBotones(d.botones);
+    } catch {
+      hideTyping();
+      addMsg('bot','🚗 Bienvenido a CITAMOTOR. ¿En qué te ayudamos?');
+    } finally { setLoading(false); }
+  })();
+</script>
+</body>
+</html>
